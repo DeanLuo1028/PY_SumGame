@@ -225,3 +225,4 @@ if __name__ == "__main__":
     button.grid(row=4, column=1, rowspan=2)
     root.mainloop()
     #只是測試
+    #成功了!
