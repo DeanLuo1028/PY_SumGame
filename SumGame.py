@@ -224,3 +224,4 @@ if __name__ == "__main__":
     button = tk.Button(master=root, text="開始遊戲！", command=lambda: start(entry_x.get(), entry_y.get(), entry_ratio.get()))
     button.grid(row=4, column=1, rowspan=2)
     root.mainloop()
+    #只是測試
