@@ -33,6 +33,7 @@ class Gezi(tk.Button): # Gezi = 格子
                 Gezi.sumGame.numOfOperatedIncrease() # 選中答案，已選的正確格子數加 1
                 Gezi.sumGame.selected_sum_label[s.x].update(Gezi.sumGame.gezis[s.x ,:]) # 更新下排已選格子之和標題 # 問題出在這
                 Gezi.sumGame.selected_sum_label_right[s.y].update(Gezi.sumGame.gezis[:,s.y]) # 更新右排已選格子之和標題 # 問題出在這
+                Gezi.sumGame.score_label.plus()
             else:
                 s.config(bg="red",fg="white")
                 Gezi.sumGame.lose()
@@ -93,6 +94,21 @@ class SelectedTitle(tk.Label): # 已選格子之和
             s.config(bg="green", fg="white")
 
 
+class ScoreLabel(tk.Label):
+    score = 0
+    def __init__(s, master):
+        super().__init__(master=master, text="0", font=("Arial", 20), bg="pink", fg="gray")
+    
+    def plus(self):
+        ScoreLabel.score += 1
+        self.config(text=str(ScoreLabel.score))
+        self.update()
+    
+    def minus(self):
+        ScoreLabel.score -= 1
+        self.config(text=str(ScoreLabel.score))
+        self.update()
+
 class SumGame:
     def __init__(s, Xrange, Yrange, ratio=30):
         s.Xrange = Xrange
@@ -111,6 +127,7 @@ class SumGame:
         s.numOfCorrectGezi = s.numOfGezi * s.ratio // 100 # ratio% 的格子為答案格
         s.correctGezis = []
         s.prompt_button = None
+        s.score_label = None
         s.board = tk.Frame(s.root) # 建立框架
         s.board.grid(row=1, column=1, columnspan=Xrange, rowspan=Yrange) # 使用 grid 放置框架
         s.panel = tk.Frame(s.root)
@@ -152,6 +169,8 @@ class SumGame:
 
         s.prompt_button = tk.Button(master=s.panel, text="提示", font=("Arial", 20), bg="green", fg="white", command=s.prompt)
         s.prompt_button.pack()
+        s.score_label = ScoreLabel(s.panel)
+        s.score_label.pack()
         '''
         for j in range(s.Xrange):
             for i in range(s.Yrange):
@@ -177,6 +196,7 @@ class SumGame:
         messagebox.showinfo("你輸了","你選了不該選的格子或清除了不該清除的格子")
         
     def prompt(s): # 提示
+        s.score_label.minus()
         if s.isWin(): return
         while True:
             gezi = random.choice(s.correctGezis)
