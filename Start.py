@@ -1,8 +1,7 @@
-# 暫時棄用
-# --- 4. 遊戲啟動程式碼 (啟動流程) ---------------------------------------------
+# --- 遊戲啟動程式碼 (啟動流程) -----------------------------------------------
 import tkinter as tk
 from tkinter import messagebox
-from controller import SumGameController
+from controller import Controller
 
 def start_game(text_x, text_y, text_ratio, setup_root: tk.Tk):
     """從設定視窗啟動遊戲。"""
@@ -20,14 +19,14 @@ def start_game(text_x, text_y, text_ratio, setup_root: tk.Tk):
 
         setup_root.destroy()
         # 啟動 Controller，由 Controller 創建遊戲主視窗
-        sumgame = SumGameController(x, y, ratio)
+        game = Controller(x, y, ratio)
         
     except ValueError:
         messagebox.showerror("錯誤！", "請在所有欄位輸入有效的整數！")
     except Exception as e:
         messagebox.showerror("錯誤！", f"發生未知錯誤: {e}")
 
-def main_init():
+def initial_settings():
     """創建遊戲設定視窗。"""
     root = tk.Tk()
     root.title("Sum Game 遊戲設定")
@@ -59,4 +58,4 @@ def main_init():
     root.mainloop()
 
 if __name__ == "__main__":
-    main_init()
+    initial_settings()
