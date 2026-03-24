@@ -1,2 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
 
-.codegpt
+# VS Code
+.vscode/
+
+# 虛擬環境
+venv/
+.env/
+
+temp/
