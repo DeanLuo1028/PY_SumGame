@@ -6,7 +6,7 @@ from model import TileStatus
 class GameView:
     """
     View 主類別：負責所有的 Tkinter UI 創建、佈局和管理。
-    所有 UI 創建邏輯都在這裡，確保 Model 和 Controller 完全獨立。
+    所有 UI 創建邏輯都在這裡。
     """
     def __init__(self, model, controller):
         """
@@ -23,11 +23,11 @@ class GameView:
         self.root.title("Sum Game")
         
         # 儲存 View 元件以方便更新
-        self.tile_views: list[list[TileView]] = [[None for _ in range(model.y_range)] 
+        self.tile_views: list[list[TileView|None]] = [[None for _ in range(model.y_range)] 
                                                    for _ in range(model.x_range)]
-        self.selected_sum_labels_col = []  # 下排
-        self.selected_sum_labels_row = []  # 右排
-        self.score_label: ScoreLabel = None
+        self.selected_sum_labels_col: list[SelectedSumLabel] = []  # 下排
+        self.selected_sum_labels_row: list[SelectedSumLabel] = []  # 右排
+        self.score_label: ScoreLabel|None = None
         
         # 建立所有 UI 元件
         self._build_ui()
@@ -111,23 +111,28 @@ class GameView:
     def destroy(self) -> None:
         self.root.destroy()
 
-    def update_tile_view(self, x, y):
+    def update_tile_view(self, x: int, y: int) -> None:
         """更新指定座標的格子視圖。"""
-        self.tile_views[x][y].update_view()
+        tile = self.tile_views[x][y]
+        assert tile is not None
+        tile.update_view()
 
-    def update_all_tiles(self):
+    def update_all_tiles(self) -> None:
         """更新所有格子視圖。"""
         for x in range(self.model.x_range):
             for y in range(self.model.y_range):
-                self.tile_views[x][y].update_view()
+                tile = self.tile_views[x][y]
+                assert tile is not None
+                tile.update_view()
 
-    def update_selected_sum_labels(self):
+    def update_selected_sum_labels(self) -> None:
         """更新所有已選和標籤。"""
         for label in self.selected_sum_labels_col + self.selected_sum_labels_row:
             label.update_view()
 
-    def update_score_label(self):
+    def update_score_label(self) -> None:
         """更新分數標籤。"""
+        assert self.score_label is not None
         self.score_label.update_view()
 
     def flash_tile(self, x, y):
@@ -147,7 +152,7 @@ class GameView:
 
 class TileView(tk.Button):
     """View 元件：代表遊戲網格中的一個按鈕格子。"""
-    def __init__(self, master, x, y, controller, model):
+    def __init__(self, master: tk.Widget, x: int, y: int, controller, model) -> None:
         self.controller = controller 
         self.model = model
         self.x = x
@@ -161,7 +166,7 @@ class TileView(tk.Button):
         
         self.update_view()
 
-    def update_view(self):
+    def update_view(self) -> None:
         """根據 Model 的數據更新按鈕的視覺狀態。"""
         tile = self.model.get_tile(self.x, self.y)
         
@@ -200,7 +205,7 @@ class TileView(tk.Button):
             
 class TargetSumLabel(tk.Label):
     """View 元件：顯示目標和 (上排/左排)。"""
-    def __init__(self, master, controller, index, is_col):
+    def __init__(self, master: tk.Widget, controller, index: int, is_col: bool):
         self.controller = controller
         self.index = index
         self.is_col = is_col
@@ -212,7 +217,7 @@ class TargetSumLabel(tk.Label):
 
 class SelectedSumLabel(tk.Label):
     """View 元件：顯示已選格子之和進度 (下排/右排)。"""
-    def __init__(self, master, controller, index, is_col):
+    def __init__(self, master: tk.Widget, controller, index: int, is_col: bool):
         self.controller = controller
         self.index = index
         self.is_col = is_col
@@ -221,7 +226,7 @@ class SelectedSumLabel(tk.Label):
         super().__init__(master=master, font=("Arial", 18), bg="yellow", fg="black")
         self.update_view()
 
-    def update_view(self):
+    def update_view(self) -> None:
         """根據 Model 的數據更新標籤的視覺狀態。"""
         num_answer_tiles, num_selected_tiles, current_sum = self.controller.model.calculate_selected_sum(
             self.index, self.is_col

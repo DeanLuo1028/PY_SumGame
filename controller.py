@@ -9,7 +9,14 @@ class Controller:
     遊戲控制器：協調 Model 和 View。
     所有事件處理和邏輯協調都在這裡進行。
     """
-    def __init__(self, x_range, y_range, ratio):
+    def __init__(self, x_range: int, y_range: int, ratio: int):
+        """初始化控制器，創建 Model 和 View 並啟動主事件循環。
+
+        Args:
+            x_range (int): 橫向格子數量。
+            y_range (int): 縱向格子數量。
+            ratio (int): 答案格子比例百分比。
+        """
         # 初始化 Model
         self.model = SumGame(x_range, y_range, ratio)
         
@@ -19,7 +26,7 @@ class Controller:
         # 啟動事件迴圈
         self.view.mainloop()
 
-    def _update_all_views(self):
+    def _update_all_views(self) -> None:
         """通知所有相關 View 刷新顯示。"""
         self.view.update_all_tiles()
         self.view.update_selected_sum_labels()
@@ -31,8 +38,14 @@ class Controller:
 
     # --- 事件處理方法 ---
 
-    def handle_tile_click(self, x, y, button_type):
-        """處理格子點擊事件。"""
+    def handle_tile_click(self, x: int, y: int, button_type: str) -> None:
+        """處理格子點擊事件。
+
+        Args:
+            x (int): 點擊格子的列索引。
+            y (int): 點擊格子的行索引。
+            button_type (str): 按鍵類型，'left' 或 'right'。
+        """
         is_fail = False
         
         if button_type == 'left':
@@ -45,7 +58,7 @@ class Controller:
         
         self._update_all_views()
 
-    def handle_prompt(self):
+    def handle_prompt(self) -> None:
         """處理提示按鈕點擊事件。"""
         prompt_coords = self.model.use_prompt()
         if prompt_coords:
@@ -54,7 +67,7 @@ class Controller:
         else:
             self.view.show_message("提示", "無法使用提示，遊戲已結束或已選完所有答案。")
 
-    def handle_restart(self):
+    def handle_restart(self) -> None:
         """重新啟動遊戲。"""
         self.view.destroy()
         from Start import initial_settings
