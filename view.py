@@ -160,11 +160,22 @@ class TileView(tk.Button):
 
         super().__init__(master, width=1, height=1, font=("Arial", 18), bg="white", fg="black")
         
-        # 綁定事件到 Controller
-        self.config(command=lambda: self.controller.handle_tile_click(self.x, self.y, 'left'))
-        self.bind("<Button-3>", lambda event: self.controller.handle_tile_click(self.x, self.y, 'right'))
+        # 綁定事件
+        self.config(command=self.on_click)
+        self.bind("<Button-3>", self.right_click)
         
         self.update_view()
+    
+    def on_click(self):
+        self.controller.handle_tile_click(self.x, self.y, 'left')
+    def right_click(self, event):
+        self.controller.handle_tile_click(self.x, self.y, 'right')
+
+    def flash(self):
+        """使格子閃爍一段時間以吸引注意。"""
+        original_bg = self.cget("bg")
+        self.config(bg="yellow")  # 臨時改變為黃色
+        self.after(500, lambda: self.config(bg=original_bg))  # 500ms後恢復原色
 
     def update_view(self) -> None:
         """根據 Model 的數據更新按鈕的視覺狀態。"""
@@ -195,14 +206,8 @@ class TileView(tk.Button):
         else:
             # 初始狀態
             self.config(text=str(tile.number), bg="white", fg="black")
-    
-    def flash(self):
-        """提示時的閃爍效果"""
-        self.config(bg="yellow")
-        if self.model.is_game_over: return
-        self.after(200, lambda: self.config(bg="white"))
 
-            
+
 class TargetSumLabel(tk.Label):
     """View 元件：顯示目標和 (上排/左排)。"""
     def __init__(self, master: tk.Widget, controller, index: int, is_col: bool):

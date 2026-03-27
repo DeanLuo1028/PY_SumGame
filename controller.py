@@ -31,10 +31,6 @@ class Controller:
         self.view.update_all_tiles()
         self.view.update_selected_sum_labels()
         self.view.update_score_label()
-        
-        # 檢查勝利
-        if self.model.check_win():
-            self._handle_win()
 
     # --- 事件處理方法 ---
 
@@ -53,17 +49,26 @@ class Controller:
         elif button_type == 'right':
             is_fail = self.model.handle_right_click(x, y)
         
+        self._update_all_views()
+        
         if is_fail:
             self._handle_lose()
+            return
         
-        self._update_all_views()
+        # 檢查勝利
+        if self.model.check_win():
+            self._handle_win()
 
     def handle_prompt(self) -> None:
         """處理提示按鈕點擊事件。"""
         prompt_coords = self.model.use_prompt()
         if prompt_coords:
-            self.view.flash_tile(prompt_coords[0], prompt_coords[1])
             self._update_all_views()
+            # 檢查勝利
+            if self.model.check_win():
+                self._handle_win()
+                return
+            self.view.flash_tile(*prompt_coords)
         else:
             self.view.show_message("提示", "無法使用提示，遊戲已結束或已選完所有答案。")
 
