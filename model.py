@@ -177,15 +177,11 @@ class SumGame:
         if self.is_game_over or self.check_win():
             return None # 遊戲結束或已贏，不能使用提示
         
-        # 尋找所有未選中的答案格
-        unselected_answers = [(x, y) for x, y in self.correct_tile_coords
-                              if self.grid[x][y].status == TileStatus.NOT_SELECTED]
-        
-        if not unselected_answers:
-            return None
-
-        # 隨機選中一個
-        px, py = random.choice(unselected_answers)
+        while True:
+            # 隨機選中一個正確格子
+            px, py = random.choice(self.correct_tile_coords)
+            if self.grid[px][py].status == TileStatus.NOT_SELECTED:
+                break
         
         # 強制執行點擊邏輯
         self.grid[px][py].status = TileStatus.IS_SELECTED
