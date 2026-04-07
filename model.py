@@ -54,7 +54,7 @@ class SumGame:
         self.grid = [[Tile() for _ in range(y_range)] for _ in range(x_range)]
         
         self.total_tiles = x_range * y_range
-        self.num_correct = self.total_tiles * ratio // 100
+        self.num_correct = max(1, self.total_tiles * ratio // 100) # 至少一個答案格
         self.correct_tile_coords: list[tuple[int, int]] = []
         self.num_answered = 0
 
@@ -85,36 +85,29 @@ class SumGame:
         Returns:
             int: 一欄或一列中所有答案格子的數字總和
         """
-        current_sum = 0
+        target_sum = 0
         tiles = self.grid[index] if is_col else [self.grid[x][index] for x in range(self.x_range)]
         
         for tile in tiles:
             if tile.is_answer:
-                current_sum += tile.number
-        return current_sum
+                target_sum += tile.number
+        return target_sum
     
-    def calculate_selected_sum(self, index: int, is_col: bool) -> tuple[int, int, int]:
+    def calculate_selected_sum(self, index: int, is_col: bool) -> int:
         """計算一欄或一列中已選答案格子的數字總和 (進度)。
         Attributes:
             index (int): 第幾欄或第幾列
             is_col (bool): 要計算的是否是欄(橫向)
         Returns:
-            tuple [int, int, int]:
-            答案格子的總數 (num_answer_tiles)
-            已選中且是答案格子的總數 (num_selected_tiles)
-            已選中且是答案格子的數字總和 (current_sum)
+            int: 已選中且是答案格子的數字總和 (current_sum)
         """
-        num_answer_tiles, num_selected_tiles, current_sum = 0, 0, 0
+        current_sum = 0
         tiles = self.grid[index] if is_col else [self.grid[x][index] for x in range(self.x_range)]
 
         for tile in tiles:
-            if tile.is_answer:
-                num_answer_tiles += 1
-                if tile.status == TileStatus.IS_SELECTED:
-                    num_selected_tiles += 1
-                    current_sum += tile.number
-        
-        return num_answer_tiles, num_selected_tiles, current_sum
+            if tile.is_answer and tile.status == TileStatus.IS_SELECTED:
+                current_sum += tile.number
+        return current_sum
     
     def handle_left_click(self, x: int, y: int) -> bool:
         """處理左鍵點擊邏輯，返回是否導致遊戲失敗。"""

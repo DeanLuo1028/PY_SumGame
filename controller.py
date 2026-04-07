@@ -1,5 +1,4 @@
 # --- Controller (協調 Model 和 View) -----------------------------------------------
-from tkinter import messagebox
 from model import SumGame
 from view import GameView
 

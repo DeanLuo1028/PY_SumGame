@@ -25,8 +25,8 @@ class GameView:
         # 儲存 View 元件以方便更新
         self.tile_views: list[list[TileView|None]] = [[None for _ in range(model.y_range)] 
                                                    for _ in range(model.x_range)]
-        self.selected_sum_labels_col: list[SelectedSumLabel] = []  # 下排
-        self.selected_sum_labels_row: list[SelectedSumLabel] = []  # 右排
+        self.selected_sum_labels_col: list[SelectedSumLabel] = []  # 上排
+        self.selected_sum_labels_row: list[SelectedSumLabel] = []  # 左排
         self.score_label: ScoreLabel|None = None
         
         # 建立所有 UI 元件
@@ -40,7 +40,7 @@ class GameView:
         main_frame = tk.Frame(self.root)
         main_frame.grid(row=1, column=1, columnspan=x_range + 2, rowspan=y_range + 2, padx=10, pady=10)
 
-        # 1. 創建遊戲網格（包含上排/左排/右排/下排）
+        # 1. 創建遊戲網格（包含上排/左排）
         board_frame = tk.Frame(main_frame)
         board_frame.grid(row=1, column=1, columnspan=x_range, rowspan=y_range)
 
@@ -50,15 +50,17 @@ class GameView:
         for row in range(y_range + 2):
             board_frame.grid_rowconfigure(row, weight=1, uniform='grid')
 
-        # 上排 (目標和)
+        # 上排
         for x in range(x_range):
-            label = TargetSumLabel(board_frame, self.controller, x, is_col=True)
+            label = SelectedSumLabel(board_frame, self.controller, x, is_col=True)
             label.grid(row=0, column=x + 1, pady=(0, 5), sticky='nsew')
+            self.selected_sum_labels_col.append(label)
 
-        # 左排 (目標和)
+        # 左排
         for y in range(y_range):
-            label = TargetSumLabel(board_frame, self.controller, y, is_col=False)
+            label = SelectedSumLabel(board_frame, self.controller, y, is_col=False)
             label.grid(row=y + 1, column=0, padx=(0, 5), sticky='nsew')
+            self.selected_sum_labels_row.append(label)
 
         # 中央格子
         for x in range(x_range):
@@ -67,25 +69,13 @@ class GameView:
                 self.tile_views[x][y] = tile_view
                 tile_view.grid(row=y + 1, column=x + 1, sticky='nsew')  # 放在第1行以上
 
-        # 右排 (選中進度)
-        for y in range(y_range):
-            label = SelectedSumLabel(board_frame, self.controller, y, is_col=False)
-            label.grid(row=y + 1, column=x_range + 1, padx=(5, 0), sticky='nsew')
-            self.selected_sum_labels_row.append(label)
-
-        # 下排 (選中進度)
-        for x in range(x_range):
-            label = SelectedSumLabel(board_frame, self.controller, x, is_col=True)
-            label.grid(row=y_range + 1, column=x + 1, pady=(5, 0), sticky='nsew')
-            self.selected_sum_labels_col.append(label)
-
         # 4. 創建控制面板
         self._build_control_panel(y_range, x_range)
 
     def _build_control_panel(self, y_range, x_range):
         """建立控制面板（按鈕和分數）。"""
         panel = tk.Frame(self.root)
-        panel.grid(row=y_range + 3, column=1, columnspan=x_range + 2, pady=10)
+        panel.grid(row=y_range + 3, column=1, columnspan=x_range, pady=10)
 
         # 提示按鈕
         prompt_button = tk.Button(
@@ -208,43 +198,26 @@ class TileView(tk.Button):
             self.config(text=str(tile.number), bg="white", fg="black")
 
 
-class TargetSumLabel(tk.Label):
-    """View 元件：顯示目標和 (上排/左排)。"""
-    def __init__(self, master: tk.Widget, controller, index: int, is_col: bool):
-        self.controller = controller
-        self.index = index
-        self.is_col = is_col
-        
-        target_sum = self.controller.model.calculate_target_sum(index, is_col)
-        
-        super().__init__(master=master, text=str(target_sum), font=("Arial", 18), 
-                         bg="lightblue", fg="darkblue")
-
 class SelectedSumLabel(tk.Label):
-    """View 元件：顯示已選格子之和進度 (下排/右排)。"""
+    """View 元件：顯示應選格子總和與已選格子之和進度"""
     def __init__(self, master: tk.Widget, controller, index: int, is_col: bool):
         self.controller = controller
         self.index = index
         self.is_col = is_col
         self.target_sum = self.controller.model.calculate_target_sum(index, is_col)
         
-        super().__init__(master=master, font=("Arial", 18), bg="yellow", fg="black")
+        super().__init__(master=master, font=("Arial", 18), bg="orange", fg="black")
         self.update_view()
 
     def update_view(self) -> None:
         """根據 Model 的數據更新標籤的視覺狀態。"""
-        num_answer_tiles, num_selected_tiles, current_sum = self.controller.model.calculate_selected_sum(
-            self.index, self.is_col
-        )
-        
+        current_sum = self.controller.model.calculate_selected_sum(self.index, self.is_col)
         # 顯示格式：目前總和 / 目標總和
         display_text = f"{current_sum}/{self.target_sum}"
         
-        # 顏色邏輯：num_selected_tiles == num_answer_tiles 表示所有答案格子都已選中
-        if num_selected_tiles == num_answer_tiles:
+        # 顏色邏輯：已選總和 == 目標總和 表示所有答案格子都已選中
+        if current_sum == self.target_sum:
             bg_color = "green"
-        elif num_selected_tiles == 0 and num_answer_tiles > 0:
-            bg_color = "yellow"
         else:
             bg_color = "orange"
 
