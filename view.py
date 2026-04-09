@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox
 from model import TileStatus, Tile, SumGame
 
-TILE_SIZE = (60, 60)  # 每個格子的像素大小
+TILE_SIZE = (50, 50)  # 每個格子的像素大小
 FONT = ("Arial", 14)
 
 class GameView:
@@ -11,7 +11,7 @@ class GameView:
     View 主類別：負責所有的 Tkinter UI 創建、佈局和管理。
     所有 UI 創建邏輯都在這裡。
     """
-    def __init__(self, model, controller):
+    def __init__(self, model: SumGame, controller):
         """
         初始化遊戲視圖。
         Args:
@@ -26,7 +26,7 @@ class GameView:
         self.root.title("Sum Game")
         
         # 儲存 View 元件以方便更新
-        self.tile_views: list[list[TileView|None]] = []
+        self.tile_views: list[list[TileView]] = []
         self.selected_sum_labels_col: list[SelectedSumLabel] = []  # 上排
         self.selected_sum_labels_row: list[SelectedSumLabel] = []  # 左排
         self.score_label: ScoreLabel|None = None
@@ -72,18 +72,19 @@ class GameView:
 
         # 中央格子
         for i in range(0, x_range):
-            col = [None] * y_range
+            col: list[TileView] = []
             for j in range(0, y_range):
-                col[j] = TileView(i, j,
-                                self.canva.create_rectangle(
-                                    (i+1)*TILE_SIZE[0], (j+1)*TILE_SIZE[1],
-                                    (i+2)*TILE_SIZE[0], (j+2)*TILE_SIZE[1],
-                                    fill="white", outline="black"),
-                                self.canva.create_text(
-                                    (i+1)*TILE_SIZE[0]+TILE_SIZE[0]//2,
-                                    (j+1)*TILE_SIZE[1]+TILE_SIZE[1]//2,
-                                    text=f"({i}, {j})", font=FONT),
-                                self.canva, self.model)
+                col.append(
+                    TileView(i, j,
+                            self.canva.create_rectangle(
+                                (i+1)*TILE_SIZE[0], (j+1)*TILE_SIZE[1],
+                                (i+2)*TILE_SIZE[0], (j+2)*TILE_SIZE[1],
+                                fill="white", outline="black"),
+                            self.canva.create_text(
+                                (i+1)*TILE_SIZE[0]+TILE_SIZE[0]//2,
+                                (j+1)*TILE_SIZE[1]+TILE_SIZE[1]//2,
+                                text=f"({i}, {j})", font=FONT),
+                            self.canva, self.model))
                 
             self.tile_views.append(col)
 
@@ -114,16 +115,15 @@ class GameView:
         restart_button.pack(side=tk.LEFT, padx=10)
     
     def on_left_click(self, event: tk.Event) -> None:
-        if event.x < TILE_SIZE[0] or event.y < TILE_SIZE[1]: return  # 點擊在控制面板或標籤區域，不處理
+        if event.x < TILE_SIZE[0] or event.y < TILE_SIZE[1]: return  # 點擊在標籤區域，不處理
         px, py = event.x//TILE_SIZE[0], event.y//TILE_SIZE[1]
         self.controller.handle_tile_click(px-1, py-1, 'left')
 
     def on_right_click(self, event: tk.Event) -> None:
-        if event.x < TILE_SIZE[0] or event.y < TILE_SIZE[1]: return  # 點擊在控制面板或標籤區域，不處理
+        if event.x < TILE_SIZE[0] or event.y < TILE_SIZE[1]: return  # 點擊在標籤區域，不處理
         px, py = event.x//TILE_SIZE[0], event.y//TILE_SIZE[1]
         self.controller.handle_tile_click(px-1, py-1, 'right')
 
-    
     def mainloop(self) -> None:
         self.root.mainloop()
     
@@ -132,17 +132,13 @@ class GameView:
 
     def update_tile_view(self, x: int, y: int) -> None:
         """更新指定座標的格子視圖。"""
-        tile = self.tile_views[x][y]
-        assert tile is not None
-        tile.update_view()
+        self.tile_views[x][y].update_view()
 
     def update_all_tiles(self) -> None:
         """更新所有格子視圖。"""
         for x in range(self.model.x_range):
             for y in range(self.model.y_range):
-                tile = self.tile_views[x][y]
-                assert tile is not None
-                tile.update_view()
+                self.tile_views[x][y].update_view()
 
     def update_selected_sum_labels(self) -> None:
         """更新所有已選和標籤。"""
@@ -176,6 +172,12 @@ class TileView:
         self.canva = canva
         self.model = model
         
+        if model.get_tile(x, y).is_answer:
+            self.oval_id = self.canva.create_oval(
+                (self.x+1.2)*TILE_SIZE[0], (self.y+1.2)*TILE_SIZE[1],
+                (self.x+1.8)*TILE_SIZE[0], (self.y+1.8)*TILE_SIZE[1],
+                outline="white", width=2) # 隱藏答案格的圓形標記，初始為白色（不可見）
+        
         self.update_view()
     
 
@@ -195,14 +197,11 @@ class TileView:
             return
 
         if tile.status == TileStatus.IS_SELECTED:
-            self.canva.itemconfig(self.rect_id, fill="lightgreen" if tile.is_answer else "red")
-            self.canva.itemconfig(self.text_id, fill="white")
-        elif tile.status == TileStatus.IS_EXCLUDED:
-            # 已排除/標記
-            self.canva.itemconfig(self.rect_id, fill="lightgrey")
-            self.canva.itemconfig(self.text_id, text="X", fill="red")
-        else:
-            # 初始狀態
+            self.canva.itemconfig(self.oval_id, outline="black") # 顯示答案格的圓形標記
+        elif tile.status == TileStatus.IS_EXCLUDED: # 已排除
+            self.canva.itemconfig(self.rect_id, fill="white")
+            self.canva.itemconfig(self.text_id, fill="white") # 隱藏數字
+        else: # 初始狀態
             self.canva.itemconfig(self.rect_id, fill="white")
             self.canva.itemconfig(self.text_id, fill="black")
     
@@ -243,10 +242,8 @@ class SelectedSumLabel:
         display_text = f"{current_sum}/{target_sum}"
         
         # 顏色邏輯：已選總和 == 目標總和 表示所有答案格子都已選中
-        if current_sum == target_sum and target_sum > 0:
-            bg_color = "green"
-        else:
-            bg_color = "orange"
+        
+        bg_color = "green" if current_sum == target_sum else "orange"
         
         self.canva.itemconfig(self.rect_id, fill=bg_color)
         self.canva.itemconfig(self.text_id, text=display_text, fill="white")

@@ -13,8 +13,11 @@ def start_game(text_x: str, text_y: str, text_ratio: str, setup_root: tk.Tk) -> 
         if not (1 <= ratio <= 100):
             messagebox.showinfo("錯誤！", "答案格比例請輸入 1 到 100 的整數！")
             return
-        if not (x > 0 and y > 0):
-            messagebox.showinfo("錯誤！", "請輸入正確的網格大小！")
+        if x < 1 or x > 25:
+            messagebox.showinfo("錯誤！", "輸入的x請在 1 到 25 的範圍內！")
+            return
+        if y < 1 or y > 15:
+            messagebox.showinfo("錯誤！", "輸入的y請在 1 到 15 的範圍內！")
             return
 
         setup_root.destroy()
