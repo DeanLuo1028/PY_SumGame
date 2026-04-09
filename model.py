@@ -113,6 +113,8 @@ class SumGame:
         """處理左鍵點擊邏輯，返回是否導致遊戲失敗。"""
         if self.is_game_over:
             return False
+        if x < 0 or x >= self.x_range or y < 0 or y >= self.y_range:
+            return False # 無效座標
 
         tile = self.grid[x][y]
         if tile.status != TileStatus.NOT_SELECTED:
@@ -142,6 +144,8 @@ class SumGame:
         """
         if self.is_game_over:
             return False
+        if x < 0 or x >= self.x_range or y < 0 or y >= self.y_range:
+            return False # 無效座標
         
         tile = self.grid[x][y]
         if tile.status == TileStatus.IS_SELECTED:
