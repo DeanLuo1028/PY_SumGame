@@ -2,9 +2,11 @@
 import tkinter as tk
 from tkinter import messagebox
 from model import TileStatus, Tile, SumGame
+from Color import *
 
 TILE_SIZE = (50, 50)  # 每個格子的像素大小
 FONT = ("Arial", 14)
+LITTLE_FONT = ("Arial", 10)
 
 class GameView:
     """
@@ -29,6 +31,7 @@ class GameView:
         self.tile_views: list[list[TileView]] = []
         self.selected_sum_labels_col: list[SelectedSumLabel] = []  # 上排
         self.selected_sum_labels_row: list[SelectedSumLabel] = []  # 左排
+        self.group_sum_labels: list[GroupSumLabel] = []  # 組總和標籤
         self.score_label: ScoreLabel|None = None
         
         # 建立所有 UI 元件
@@ -51,10 +54,11 @@ class GameView:
                                     self.canva.create_rectangle(
                                         (x+1)*TILE_SIZE[0], 0,
                                         (x+2)*TILE_SIZE[0], TILE_SIZE[1],
-                                        fill="orange", outline="black"),
+                                        fill=WHITE, outline=BLACK),
                                     self.canva.create_text(
-                                        (x+1)*TILE_SIZE[0]+TILE_SIZE[0]//2, TILE_SIZE[1]//2, text="0", font=FONT),
-                                    self.controller, self.canva)
+                                        (x+1)*TILE_SIZE[0]+TILE_SIZE[0]//2, TILE_SIZE[1]//2,
+                                        text="-1", font=FONT, fill=BLACK),
+                                    self.model, self.canva)
 
             self.selected_sum_labels_col.append(label)
 
@@ -64,10 +68,11 @@ class GameView:
                                     self.canva.create_rectangle(
                                         0, (y+1)*TILE_SIZE[1],
                                         TILE_SIZE[0], (y+2)*TILE_SIZE[1],
-                                        fill="orange", outline="black"),
+                                        fill=WHITE, outline=BLACK),
                                     self.canva.create_text(
-                                        TILE_SIZE[0]//2, (y+1)*TILE_SIZE[1]+TILE_SIZE[1]//2, text="0", font=FONT),
-                                    self.controller, self.canva)
+                                        TILE_SIZE[0]//2, (y+1)*TILE_SIZE[1]+TILE_SIZE[1]//2,
+                                        text="-1", font=FONT, fill=BLACK),
+                                    self.model, self.canva)
             self.selected_sum_labels_row.append(label)
 
         # 中央格子
@@ -79,7 +84,7 @@ class GameView:
                             self.canva.create_rectangle(
                                 (i+1)*TILE_SIZE[0], (j+1)*TILE_SIZE[1],
                                 (i+2)*TILE_SIZE[0], (j+2)*TILE_SIZE[1],
-                                fill="white", outline="black"),
+                                fill=WHITE, outline=BLACK),
                             self.canva.create_text(
                                 (i+1)*TILE_SIZE[0]+TILE_SIZE[0]//2,
                                 (j+1)*TILE_SIZE[1]+TILE_SIZE[1]//2,
@@ -88,10 +93,19 @@ class GameView:
                 
             self.tile_views.append(col)
 
-        # 4. 創建控制面板
-        self._build_control_panel(y_range, x_range)
+        # 組總和標籤
+        for seed in self.model.seeds:
+            label = GroupSumLabel(seed[2], self.canva.create_text(
+                (seed[0] + 1) * TILE_SIZE[0] + 5,
+                (seed[1] + 1) * TILE_SIZE[1] + 5,
+                text="-1", font=LITTLE_FONT, anchor="nw"),
+                self.model, self.canva)
+            self.group_sum_labels.append(label)
 
-    def _build_control_panel(self, y_range, x_range):
+        # 4. 創建控制面板
+        self._build_control_panel()
+
+    def _build_control_panel(self):
         """建立控制面板（按鈕和分數）。"""
         panel = tk.Frame(self.root)
         panel.pack(pady=10)
@@ -99,18 +113,18 @@ class GameView:
         # 提示按鈕
         prompt_button = tk.Button(
             master=panel, text="提示 (-1 分)", font=("Arial", 18),
-            bg="green", fg="white", command=self.controller.handle_prompt
+            bg=GREEN, fg=WHITE, command=self.controller.handle_prompt
         )
         prompt_button.pack(side=tk.LEFT, padx=10)
 
         # 分數標籤
-        self.score_label = ScoreLabel(panel, self.controller)
+        self.score_label = ScoreLabel(panel, self.model)
         self.score_label.pack(side=tk.LEFT, padx=10)
 
         # 重新開始按鈕
         restart_button = tk.Button(
             master=panel, text="重新開始", font=("Arial", 18),
-            bg="blue", fg="white", command=self.controller.handle_restart
+            bg=BLUE, fg=WHITE, command=self.controller.handle_restart
         )
         restart_button.pack(side=tk.LEFT, padx=10)
     
@@ -145,6 +159,11 @@ class GameView:
         for label in self.selected_sum_labels_col + self.selected_sum_labels_row:
             label.update_view()
 
+    def update_group_sum_labels(self) -> None:
+        """更新所有組總和標籤。"""
+        for label in self.group_sum_labels:
+            label.update_view()
+
     def update_score_label(self) -> None:
         """更新分數標籤。"""
         assert self.score_label is not None
@@ -155,7 +174,7 @@ class GameView:
         self.tile_views[x][y].flash()
 
     def show_message(self, title, message):
-        """顯示消息框（由 Controller 調用）。"""
+        """顯示消息框"""
         messagebox.showinfo(title, message)
 
     def show_error(self, title, message):
@@ -165,6 +184,8 @@ class GameView:
 
 class TileView:
     """View 元件：代表遊戲網格中的一個按鈕格子。"""
+    __slots__ = ('x', 'y', 'rect_id', 'text_id', 'canva', 'model', 'oval_id')
+    
     def __init__(self, x: int, y: int, rect_id: int, text_id: int, canva: tk.Canvas, model: SumGame) -> None:
         self.x, self.y = x, y
         self.rect_id = rect_id
@@ -172,19 +193,19 @@ class TileView:
         self.canva = canva
         self.model = model
         
-        if model.get_tile(x, y).is_answer:
-            self.oval_id = self.canva.create_oval(
-                (self.x+1.2)*TILE_SIZE[0], (self.y+1.2)*TILE_SIZE[1],
-                (self.x+1.8)*TILE_SIZE[0], (self.y+1.8)*TILE_SIZE[1],
-                outline="white", width=2) # 隱藏答案格的圓形標記，初始為白色（不可見）
+        color = self.model.get_tile_color(self.x, self.y)
+        # 圓形表示格子被選中
+        self.oval_id = self.canva.create_oval(
+            (self.x+1.2)*TILE_SIZE[0], (self.y+1.2)*TILE_SIZE[1],
+            (self.x+1.8)*TILE_SIZE[0], (self.y+1.8)*TILE_SIZE[1],
+            outline=color, width=2) # 隱藏選中的圓形標記，初始為與格子同色(不可見)
         
         self.update_view()
-    
 
     def flash(self) -> None:
         """使格子閃爍一段時間以吸引注意。"""
-        self.canva.itemconfig(self.rect_id, fill="yellow") # 臨時改變為黃色
-        self.canva.after(500, lambda: self.canva.itemconfig(self.rect_id, fill="white"))  # 500ms後恢復原色
+        self.canva.itemconfig(self.rect_id, fill=YELLOW) # 臨時改變為黃色
+        self.canva.after(500, lambda: self.canva.itemconfig(self.rect_id, fill=WHITE))  # 500ms後恢復原色
 
     def update_view(self) -> None:
         """根據 Model 的數據更新按鈕的視覺狀態。"""
@@ -196,64 +217,101 @@ class TileView:
             self.end_state(tile)
             return
 
-        if tile.status == TileStatus.IS_SELECTED:
-            self.canva.itemconfig(self.oval_id, outline="black") # 顯示答案格的圓形標記
-        elif tile.status == TileStatus.IS_EXCLUDED: # 已排除
-            self.canva.itemconfig(self.rect_id, fill="white")
-            self.canva.itemconfig(self.text_id, fill="white") # 隱藏數字
-        else: # 初始狀態
-            self.canva.itemconfig(self.rect_id, fill="white")
-            self.canva.itemconfig(self.text_id, fill="black")
+        color = self.model.get_tile_color(self.x, self.y)
+        if tile.status == TileStatus.IS_EXCLUDED: # 已排除
+            self.canva.itemconfig(self.rect_id, fill=color)
+            self.canva.itemconfig(self.text_id, fill=color) # 隱藏數字
+        else:
+            self.canva.itemconfig(self.rect_id, fill=color)
+            self.canva.itemconfig(self.text_id, fill=WHITE if color in DARK else BLACK) # 根據背景顏色調整文字顏色
+            if tile.status == TileStatus.IS_SELECTED:
+                self.canva.itemconfig(self.oval_id, outline=WHITE if color in DARK else BLACK) # 顯示答案格的圓形標記
+            else:
+                self.canva.itemconfig(self.oval_id, outline=color) # 隱藏答案格的圓形標記
     
     def end_state(self, tile: Tile) -> None:
         if tile.is_answer:
             if tile.status == TileStatus.IS_SELECTED: # 正確選中
-                self.canva.itemconfig(self.rect_id, fill="darkgreen")
-                self.canva.itemconfig(self.text_id, fill="white")  # 顯示數字
+                self.canva.itemconfig(self.rect_id, fill=GREEN)
+                self.canva.itemconfig(self.text_id, fill=WHITE)  # 顯示數字
+                self.canva.itemconfig(self.oval_id, outline=WHITE) # 顯示正確選中的圓形標記
             else: # 應該選中但未選
-                self.canva.itemconfig(self.rect_id, fill="yellow")
-                self.canva.itemconfig(self.text_id, fill="black")
+                self.canva.itemconfig(self.rect_id, fill=YELLOW)
+                self.canva.itemconfig(self.text_id, fill=BLACK)
+                self.canva.itemconfig(self.oval_id, outline=YELLOW) # 未選中所以隱藏圓形標記，但用黃色框出來表示遺漏了這個答案格
         else:
             if tile.status == TileStatus.IS_SELECTED: # 錯誤選中
-                self.canva.itemconfig(self.rect_id, fill="red")
-                self.canva.itemconfig(self.text_id, fill="white")
+                self.canva.itemconfig(self.rect_id, fill=RED)
+                self.canva.itemconfig(self.text_id, fill=WHITE)
+                self.canva.itemconfig(self.oval_id, outline=YELLOW, width=2, dash=(5, 5)) # 顯示錯誤選中的圓形標記
             else: # 正確忽略
-                self.canva.itemconfig(self.rect_id, fill="white")
-                self.canva.itemconfig(self.text_id, fill="black")
+                self.canva.itemconfig(self.rect_id, fill=WHITE)
+                self.canva.itemconfig(self.text_id, fill=BLACK)
+                self.canva.itemconfig(self.oval_id, outline=WHITE) # 隱藏圓形標記
 
 
 class SelectedSumLabel:
     """View 元件：顯示應選格子總和與已選格子之和進度"""
-    def __init__(self, index: int, is_col: bool, rect_id: int, text_id: int, controller, canva: tk.Canvas) -> None:
+    __slots__ = ('index', 'is_col', 'rect_id', 'text_id', 'model', 'canva')
+    
+    def __init__(self, index: int, is_col: bool, rect_id: int, text_id: int, model: SumGame, canva: tk.Canvas) -> None:
         self.index = index
         self.is_col = is_col
         self.rect_id = rect_id
         self.text_id = text_id
-        self.controller = controller
+        self.model = model
         self.canva = canva
         
         self.update_view()
 
     def update_view(self) -> None:
         """根據 Model 的數據更新標籤的視覺狀態。"""
-        target_sum = self.controller.model.calculate_target_sum(self.index, self.is_col)
-        current_sum = self.controller.model.calculate_selected_sum(self.index, self.is_col)
+        target_sum = self.model.calculate_target_sum(self.index, self.is_col)
+        current_sum = self.model.calculate_selected_sum(self.index, self.is_col)
         # 顯示格式：目前總和 / 目標總和
         display_text = f"{current_sum}/{target_sum}"
         
         # 顏色邏輯：已選總和 == 目標總和 表示所有答案格子都已選中
         
-        bg_color = "green" if current_sum == target_sum else "orange"
+        bg_color = GREEN if current_sum == target_sum else WHITE
         
         self.canva.itemconfig(self.rect_id, fill=bg_color)
-        self.canva.itemconfig(self.text_id, text=display_text, fill="white")
+        self.canva.itemconfig(self.text_id, text=display_text, fill=WHITE if bg_color == GREEN else BLACK)
+
+
+class GroupSumLabel:
+    """View 元件：顯示每個組的總和。"""
+    __slots__ = ('group_id', 'text_id', 'model', 'canva')
+    
+    def __init__(self, group_id: int, text_id: int, model: SumGame, canva: tk.Canvas) -> None:
+        self.group_id = group_id
+        self.text_id = text_id
+        self.model = model
+        self.canva = canva
+        
+        self.update_view()
+
+    def update_view(self) -> None:
+        """根據 Model 的數據更新標籤的視覺狀態。"""
+        group_sum = self.model.calculate_group_target_sum(self.group_id)
+        current_sum = self.model.calculate_group_selected_sum(self.group_id)
+        display_text = f"{current_sum}/{group_sum}"
+        
+        if self.model.groups_color[self.group_id] in DARK:
+            text_color = WHITE
+        else:
+            text_color = BLACK
+        self.canva.itemconfig(self.text_id, text=display_text, fill=text_color)
+
 
 class ScoreLabel(tk.Label):
     """View 元件：顯示分數。"""
-    def __init__(self, master, controller):
-        self.controller = controller
+    __slots__ = ('model',)
+    
+    def __init__(self, master, model: SumGame):
+        self.model = model
         super().__init__(master=master, text="分數: 0", font=("Arial", 18), bg="pink", fg="gray")
         self.update_view()
 
     def update_view(self):
-        self.config(text=f"分數: {self.controller.model.score}")
+        self.config(text=f"分數: {self.model.score}")

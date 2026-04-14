@@ -22,15 +22,26 @@ class Controller:
         # 初始化 View
         self.view = GameView(self.model, self)
         
-        # 啟動事件迴圈
-        self.view.mainloop()
+        self.mainloop()
 
     def _update_all_views(self) -> None:
         """通知所有相關 View 刷新顯示。"""
         self.view.update_all_tiles()
         self.view.update_selected_sum_labels()
+        self.view.update_group_sum_labels()
         self.view.update_score_label()
 
+    def mainloop(self):
+        """遊戲主事件循環，處理遊戲過程中的所有事件和更新。"""
+        try:
+            self.view.mainloop()
+        except KeyboardInterrupt:
+            self.view.show_message("遊戲中斷", "遊戲已被中斷。")
+            self.view.destroy()
+        except Exception as e:
+            self.view.show_message("錯誤！", f"遊戲發生未知錯誤: {e}")
+            # 這裡不 self.view.destroy() 是為了保留視窗以方便除錯
+    
     # --- 事件處理方法 ---
 
     def handle_tile_click(self, x: int, y: int, button_type: str) -> None:
