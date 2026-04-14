@@ -8,7 +8,7 @@ TILE_SIZE = (50, 50)  # 每個格子的像素大小
 FONT = ("Arial", 14)
 LITTLE_FONT = ("Arial", 10)
 
-class GameView:
+class View:
     """
     View 主類別：負責所有的 Tkinter UI 創建、佈局和管理。
     所有 UI 創建邏輯都在這裡。
@@ -129,12 +129,10 @@ class GameView:
         restart_button.pack(side=tk.LEFT, padx=10)
     
     def on_left_click(self, event: tk.Event) -> None:
-        if event.x < TILE_SIZE[0] or event.y < TILE_SIZE[1]: return  # 點擊在標籤區域，不處理
         px, py = event.x//TILE_SIZE[0], event.y//TILE_SIZE[1]
         self.controller.handle_tile_click(px-1, py-1, 'left')
 
     def on_right_click(self, event: tk.Event) -> None:
-        if event.x < TILE_SIZE[0] or event.y < TILE_SIZE[1]: return  # 點擊在標籤區域，不處理
         px, py = event.x//TILE_SIZE[0], event.y//TILE_SIZE[1]
         self.controller.handle_tile_click(px-1, py-1, 'right')
 
@@ -153,13 +151,22 @@ class GameView:
         for x in range(self.model.x_range):
             for y in range(self.model.y_range):
                 self.tile_views[x][y].update_view()
-
-    def update_selected_sum_labels(self) -> None:
+    
+    def update_selected_sum_label(self, x: int, y: int) -> None:
+        """更新該格子所在欄和列的已選總和標籤。"""
+        self.selected_sum_labels_col[x].update_view()
+        self.selected_sum_labels_row[y].update_view()
+    
+    def update_all_selected_sum_labels(self) -> None:
         """更新所有已選和標籤。"""
         for label in self.selected_sum_labels_col + self.selected_sum_labels_row:
             label.update_view()
 
-    def update_group_sum_labels(self) -> None:
+    def update_group_sum_label(self, group_id: int) -> None:
+        """更新指定組的總和標籤。"""
+        self.group_sum_labels[group_id].update_view()
+
+    def update_all_group_sum_label(self) -> None:
         """更新所有組總和標籤。"""
         for label in self.group_sum_labels:
             label.update_view()
@@ -204,8 +211,16 @@ class TileView:
 
     def flash(self) -> None:
         """使格子閃爍一段時間以吸引注意。"""
-        self.canva.itemconfig(self.rect_id, fill=YELLOW) # 臨時改變為黃色
-        self.canva.after(500, lambda: self.canva.itemconfig(self.rect_id, fill=WHITE))  # 500ms後恢復原色
+        color = self.model.get_tile_color(self.x, self.y)
+        if color == YELLOW:
+            self.canva.itemconfig(self.rect_id, fill=WHITE) # 臨時改變成白色
+        else:
+            self.canva.itemconfig(self.rect_id, fill=YELLOW) # 臨時改變成黃色
+        self.canva.itemconfig(self.text_id, fill=BLACK) # 顯示數字
+        def restore_color():
+            self.canva.itemconfig(self.rect_id, fill=color) # 恢復原色
+            self.canva.itemconfig(self.text_id, fill=WHITE if color in DARK else BLACK) # 根據背景顏色調整文字顏色
+        self.canva.after(500, restore_color) # 500ms後恢復原色
 
     def update_view(self) -> None:
         """根據 Model 的數據更新按鈕的視覺狀態。"""

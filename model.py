@@ -24,12 +24,12 @@ class Tile:
     """
     __slots__ = ("number", "is_answer", "status", "group_id")
     def __init__(self) -> None:
-        self.number: int = random.randrange(NUMBER_MIN, NUMBER_MAX+1)
+        self.number: int = random.randint(NUMBER_MIN, NUMBER_MAX)
         self.is_answer: bool = False
         self.status: TileStatus = TileStatus.NOT_SELECTED
         self.group_id: int = -1 # 分組 ID，初始化為 -1 表示未分組
     
-    def set_answer(self):
+    def set_answer(self) -> None:
         self.is_answer = True
 
 
@@ -49,7 +49,7 @@ class SumGame:
         groups_color (list[str]): 每個分組對應的顏色列表
 
     """
-    def __init__(self, x_range: int, y_range: int, ratio=30):
+    def __init__(self, x_range: int, y_range: int, ratio=30) -> None:
         self.x_range = x_range
         self.y_range = y_range
         self.score = 0
@@ -69,7 +69,7 @@ class SumGame:
         self._set_answers()
         self.group_all_tiles()
 
-    def _set_answers(self):
+    def _set_answers(self) -> None:
         """隨機設置答案格子。"""
         count = 0
         while count < self.num_correct:
@@ -82,7 +82,10 @@ class SumGame:
                 self.correct_tile_coords.append((x, y))
                 count += 1
     
-    def group_all_tiles(self):
+    def check_range(self, x: int, y: int) -> bool:
+        return 0 <= x < self.x_range and 0 <= y < self.y_range
+    
+    def group_all_tiles(self) -> None:
         """將所有格子分組
 
         使用改進的洪水填充算法創建高度連續的組。
@@ -153,8 +156,8 @@ class SumGame:
                 neighbors = []
                 for dx, dy in DIRECTIONS:
                     nx, ny = x + dx, y + dy
-                    if (0 <= nx < self.x_range and 0 <= ny < self.y_range and
-                        self.grid[nx][ny].group_id == -1):
+                    if (self.check_range(nx, ny)
+                    and self.grid[nx][ny].group_id == -1):
                         neighbors.append((nx, ny))
 
                 if neighbors:
@@ -201,7 +204,7 @@ class SumGame:
             return self.groups_color[tile.group_id]
         return "white" # 預設顏色
     
-    def get_tile(self, x: int, y: int):
+    def get_tile(self, x: int, y: int) -> Tile:
         return self.grid[x][y]
     
     def calculate_target_sum(self, index: int, is_col: bool) -> int:
@@ -212,13 +215,14 @@ class SumGame:
         Returns:
             int: 一欄或一列中所有答案格子的數字總和
         """
-        target_sum = 0
-        tiles = self.grid[index] if is_col else [self.grid[x][index] for x in range(self.x_range)]
-        
-        for tile in tiles:
-            if tile.is_answer:
-                target_sum += tile.number
-        return target_sum
+        if is_col:
+            return sum(tile.number
+                       for tile in self.grid[index]
+                       if tile.is_answer)
+        else:
+            return sum(tile.number
+                       for tile in [self.grid[x][index] for x in range(self.x_range)]
+                       if tile.is_answer)
     
     def calculate_selected_sum(self, index: int, is_col: bool) -> int:
         """計算一欄或一列中已選答案格子的數字總和 (進度)。
@@ -228,21 +232,26 @@ class SumGame:
         Returns:
             int: 已選中且是答案格子的數字總和 (current_sum)
         """
-        current_sum = 0
-        tiles = self.grid[index] if is_col else [self.grid[x][index] for x in range(self.x_range)]
-
-        for tile in tiles:
-            if tile.is_answer and tile.status == TileStatus.IS_SELECTED:
-                current_sum += tile.number
-        return current_sum
+        if is_col:
+            return sum(tile.number
+                       for tile in self.grid[index]
+                       if tile.is_answer and tile.status == TileStatus.IS_SELECTED)
+        else:
+            return sum(tile.number
+                       for tile in [self.grid[x][index] for x in range(self.x_range)]
+                       if tile.is_answer and tile.status == TileStatus.IS_SELECTED)
     
     def calculate_group_target_sum(self, group_id: int) -> int:
         """計算一個組內所有正確格子的數字總和。"""
-        return sum(tile.number for tile in self.groups[group_id] if tile.is_answer)
+        return sum(tile.number
+                   for tile in self.groups[group_id]
+                   if tile.is_answer)
     
     def calculate_group_selected_sum(self, group_id: int) -> int:
         """計算一個組內已選中正確格子的數字總和。"""
-        return sum(tile.number for tile in self.groups[group_id] if tile.is_answer and tile.status == TileStatus.IS_SELECTED)
+        return sum(tile.number
+                   for tile in self.groups[group_id]
+                   if tile.is_answer and tile.status == TileStatus.IS_SELECTED)
 
     def handle_left_click(self, x: int, y: int) -> bool:
         """處理左鍵點擊邏輯，返回是否導致遊戲失敗。"""
