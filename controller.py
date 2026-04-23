@@ -1,5 +1,5 @@
 # --- Controller (協調 Model 和 View) -----------------------------------------------
-from model import SumGame
+from model import SumGame, TUTORIAL_TEXT
 from view import View
 
 
@@ -96,6 +96,9 @@ class Controller:
             self.view.flash_tile(*prompt_coords)
         else:
             self.view.show_message("提示", "無法使用提示，遊戲已結束或已選完所有答案。")
+
+    def handle_tutorial(self) -> None:
+        self.view.show_tutorial(TUTORIAL_TEXT)
 
     def handle_restart(self) -> None:
         """重新啟動遊戲。"""

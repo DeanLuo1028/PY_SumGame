@@ -121,6 +121,13 @@ class View:
         self.score_label = ScoreLabel(panel, self.model)
         self.score_label.pack(side=tk.LEFT, padx=10)
 
+        # 教學按鈕
+        tutorial_button = tk.Button(
+            master=panel, text="教學", font=("Arial", 18),
+            bg=ORANGE, fg=WHITE, command=self.controller.handle_tutorial
+        )
+        tutorial_button.pack(side=tk.LEFT, padx=10)
+
         # 重新開始按鈕
         restart_button = tk.Button(
             master=panel, text="重新開始", font=("Arial", 18),
@@ -135,6 +142,24 @@ class View:
     def on_right_click(self, event: tk.Event) -> None:
         px, py = event.x//TILE_SIZE[0], event.y//TILE_SIZE[1]
         self.controller.handle_tile_click(px-1, py-1, 'right')
+    
+    def show_tutorial(self, tutorial_text: str) -> None:
+        """顯示教學視窗。"""
+        tutorial_window = tk.Toplevel(self.root)
+        tutorial_window.title("遊戲教學")
+        tutorial_window.geometry("600x600")
+        tutorial_window.resizable(False, False)
+
+        # 標題
+        title_label = tk.Label(tutorial_window, text="SumGame 教學", font=("Arial", 24, "bold"))
+        title_label.pack(pady=10)
+
+        info_label = tk.Label(tutorial_window, text=tutorial_text, font=("Arial", 12), justify=tk.LEFT)
+        info_label.pack(pady=20, padx=20, fill=tk.BOTH, expand=True)
+
+        # 關閉按鈕
+        close_btn = tk.Button(tutorial_window, text="了解", font=("Arial", 16), command=tutorial_window.destroy)
+        close_btn.pack(pady=10)
 
     def mainloop(self) -> None:
         self.root.mainloop()
